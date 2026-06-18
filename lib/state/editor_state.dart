@@ -60,6 +60,45 @@ class EditorState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Persists [doc]. For an unsaved document, [promptPath] asks the user where
+  /// to save (returning null cancels); [writeFile] performs the actual write.
+  /// Both are injected so this stays free of UI / dart:io for testing.
+  ///
+  /// Returns whether the document was saved.
+  Future<bool> save(
+    DocumentModel doc, {
+    required Future<String?> Function(String suggestedName) promptPath,
+    required Future<void> Function(String path, String content) writeFile,
+  }) async {
+    var path = doc.filePath;
+    if (path == null) {
+      path = await promptPath(doc.suggestedFileName);
+      if (path == null) return false; // user cancelled
+    }
+    await writeFile(path, doc.content);
+    doc.applySaved(path: path, title: _basename(path));
+    notifyListeners();
+    return true;
+  }
+
+  /// Renames [doc] to [newTitle]. When the document is on disk, [moveFile] is
+  /// invoked to rename the file too (and [doc.filePath] is updated).
+  Future<void> rename(
+    DocumentModel doc,
+    String newTitle, {
+    Future<String> Function(String from, String newName)? moveFile,
+  }) async {
+    final trimmed = newTitle.trim();
+    if (trimmed.isEmpty) return;
+
+    final path = doc.filePath;
+    if (path != null && moveFile != null) {
+      doc.filePath = await moveFile(path, trimmed);
+    }
+    doc.title = trimmed;
+    notifyListeners();
+  }
+
   void setActive(int index) {
     if (index < 0 || index >= _documents.length || index == _activeIndex) return;
     _activeIndex = index;
@@ -100,4 +139,9 @@ class EditorState extends ChangeNotifier {
     }
     super.dispose();
   }
+}
+
+String _basename(String path) {
+  final i = path.lastIndexOf(RegExp(r'[/\\]'));
+  return i == -1 ? path : path.substring(i + 1);
 }

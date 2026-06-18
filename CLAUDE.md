@@ -21,8 +21,13 @@ State is a single [`EditorState`](lib/state/editor_state.dart) (`ChangeNotifier`
 active index; widgets read it with `context.watch`/`context.read`.
 
 - **`DocumentModel`** owns a `TextEditingController` per tab (the source of truth for that document's text,
-  so cursor/undo survive tab switches) plus a `preview` flag. It must be `dispose()`d when its tab closes —
-  `EditorState.closeDocument` does this.
+  so cursor/undo survive tab switches), a `preview` flag, and a `dirty` `ValueNotifier` (content vs.
+  last-saved). It must be `dispose()`d when its tab closes — `EditorState.closeDocument` does this.
+- **Save / rename** live on `EditorState` (`save`, `rename`) as UI-free methods that take injected
+  `promptPath` / `writeFile` / `moveFile` callbacks, so they unit-test without dialogs or `dart:io`. The
+  UI wiring (native save panel + `File` writes) is in
+  [`lib/services/document_io.dart`](lib/services/document_io.dart). The Save button and italic tab title
+  listen to `DocumentModel.dirty`; ⌘S is bound via `CallbackShortcuts` in the editor screen.
 - **Formatting** lives in [`lib/formatting/markdown_format.dart`](lib/formatting/markdown_format.dart) as
   **pure functions** on `TextEditingValue` (`applyFormat`, `activeFormats`) — no widget dependencies, so it
   is unit-tested directly. The toolbar wraps its buttons in `ExcludeFocus` so tapping them does not steal
@@ -33,9 +38,18 @@ active index; widgets read it with `context.watch`/`context.read`.
 - Closing the last tab calls `closeApp()` in [`lib/app_window.dart`](lib/app_window.dart)
   (`SystemNavigator.pop()`).
 
-**macOS sandbox:** reading user-picked files requires `com.apple.security.files.user-selected.read-only`
-in both `macos/Runner/DebugProfile.entitlements` and `Release.entitlements`. Other desktop platforms
-(windows/linux) are scaffolded but their file-open entitlement/permission story is untested.
+**macOS sandbox:** reading/writing user-picked files requires
+`com.apple.security.files.user-selected.read-write` in both `macos/Runner/DebugProfile.entitlements` and
+`Release.entitlements`. Other desktop platforms (windows/linux) are scaffolded but their file
+entitlement/permission story is untested.
+
+**macOS file association (Open With / default app):** declared via `CFBundleDocumentTypes` (markdown UTI
+`net.daringfireball.markdown` + `md`/`markdown` extensions) in `macos/Runner/Info.plist`. When macOS opens
+a file, `AppDelegate.application(_:open:)` forwards the paths over the `mdeditor/files` `MethodChannel`
+(buffering until the engine is ready; Dart drains via `drainPendingFiles`). The Dart side is
+[`lib/services/open_file_channel.dart`](lib/services/open_file_channel.dart), wired up in `EditorScreen`'s
+`initState` only on macOS. This path can't be exercised by `flutter test` — verify by launching the built
+`.app` from Finder.
 
 ## Testing notes
 

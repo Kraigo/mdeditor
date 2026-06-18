@@ -1,9 +1,9 @@
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../formatting/markdown_format.dart';
 import '../models/document.dart';
+import '../services/document_io.dart';
 import '../state/editor_state.dart';
 import 'settings_dialog.dart';
 
@@ -34,8 +34,10 @@ class EditorToolbar extends StatelessWidget {
           IconButton(
             tooltip: 'Open Markdown file',
             icon: const Icon(Icons.folder_open),
-            onPressed: () => _openMarkdownFile(context),
+            onPressed: () => openDocument(context),
           ),
+          // Save (enabled only when there are unsaved changes).
+          _SaveButton(document: doc),
           // Settings popup.
           IconButton(
             tooltip: 'Settings',
@@ -64,20 +66,29 @@ class EditorToolbar extends StatelessWidget {
   }
 }
 
-/// Prompts the user for a Markdown file with the native picker and opens it as
-/// a new tab. Errors are surfaced via a SnackBar rather than thrown.
-Future<void> _openMarkdownFile(BuildContext context) async {
-  final state = context.read<EditorState>();
-  final messenger = ScaffoldMessenger.of(context);
-  try {
-    const group = XTypeGroup(label: 'Markdown', extensions: ['md', 'markdown']);
-    final file = await openFile(acceptedTypeGroups: [group]);
-    if (file == null) return; // user cancelled
-    final content = await file.readAsString();
-    state.openFile(path: file.path, name: file.name, content: content);
-  } catch (error) {
-    messenger.showSnackBar(
-      SnackBar(content: Text('Could not open file: $error')),
+/// Save button that enables only when the active document has unsaved changes.
+class _SaveButton extends StatelessWidget {
+  const _SaveButton({required this.document});
+
+  final DocumentModel? document;
+
+  @override
+  Widget build(BuildContext context) {
+    final doc = document;
+    if (doc == null) {
+      return const IconButton(
+        tooltip: 'Save (⌘S)',
+        icon: Icon(Icons.save_outlined),
+        onPressed: null,
+      );
+    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: doc.dirty,
+      builder: (context, isDirty, _) => IconButton(
+        tooltip: 'Save (⌘S)',
+        icon: const Icon(Icons.save_outlined),
+        onPressed: isDirty ? () => saveDocument(context, doc) : null,
+      ),
     );
   }
 }
