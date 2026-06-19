@@ -10,29 +10,39 @@ void main() {
     expect(state.activeDocument, isNotNull);
   });
 
-  test('openFile adds an active tab carrying the file content', () {
+  test('opening a file replaces the pristine startup Noname tab', () {
     final state = EditorState();
     state.openFile(path: '/tmp/notes.md', name: 'notes.md', content: '# Hi');
 
-    expect(state.documents, hasLength(2));
+    expect(state.documents, hasLength(1));
     expect(state.activeDocument!.title, 'notes.md');
     expect(state.activeDocument!.content, '# Hi');
     expect(state.activeDocument!.filePath, '/tmp/notes.md');
   });
 
+  test('opening a file keeps an edited Noname instead of replacing it', () {
+    final state = EditorState();
+    state.activeDocument!.controller.text = 'work in progress';
+    state.openFile(path: '/tmp/notes.md', name: 'notes.md', content: '# Hi');
+
+    expect(state.documents, hasLength(2));
+    expect(state.activeDocument!.filePath, '/tmp/notes.md');
+  });
+
   test('openFile re-activates an already-open file instead of duplicating', () {
     final state = EditorState();
-    state.openFile(path: '/tmp/a.md', name: 'a.md', content: 'a');
+    state.openFile(path: '/tmp/a.md', name: 'a.md', content: 'a'); // replaces Noname
     state.openFile(path: '/tmp/b.md', name: 'b.md', content: 'b');
-    expect(state.documents, hasLength(3));
+    expect(state.documents, hasLength(2));
 
     state.openFile(path: '/tmp/a.md', name: 'a.md', content: 'a');
-    expect(state.documents, hasLength(3));
+    expect(state.documents, hasLength(2));
     expect(state.activeDocument!.filePath, '/tmp/a.md');
   });
 
   test('closing the active tab keeps a valid active document', () {
     final state = EditorState();
+    state.activeDocument!.controller.text = 'keep me'; // so Noname survives open
     state.openFile(path: '/tmp/a.md', name: 'a.md', content: 'a');
     final activeId = state.activeDocument!.id;
 

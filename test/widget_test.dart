@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mdeditor/main.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets('opens with a single Noname document', (tester) async {
     await tester.pumpWidget(const MdEditorApp());
 
@@ -93,6 +96,26 @@ void main() {
 
     expect(find.text('Words: 2'), findsOneWidget);
     expect(find.text('Characters: 7'), findsOneWidget);
+  });
+
+  testWidgets('closing a tab with unsaved changes prompts to confirm',
+      (tester) async {
+    await tester.pumpWidget(const MdEditorApp());
+    await tester.enterText(find.byType(TextField), 'unsaved work');
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Save changes to'), findsOneWidget);
+
+    // Cancelling keeps the document and its content.
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'unsaved work',
+    );
   });
 
   testWidgets('closing a tab removes it while others remain', (tester) async {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/document.dart';
 import '../state/editor_state.dart';
+import '../state/settings_state.dart';
 import 'markdown_preview.dart';
 
 /// The document body: either the raw Markdown editor or the rendered preview,
@@ -53,6 +54,7 @@ class _RawEditorState extends State<_RawEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<SettingsState>();
     return Padding(
       padding: const EdgeInsets.all(16),
       child: TextField(
@@ -67,9 +69,9 @@ class _RawEditorState extends State<_RawEditor> {
           isCollapsed: true,
           hintText: 'Start writing Markdown…',
         ),
-        style: const TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 14,
+        style: TextStyle(
+          fontFamily: settings.fontFamily,
+          fontSize: settings.fontSize,
           height: 1.5,
         ),
       ),

@@ -49,6 +49,10 @@ class DocumentModel {
 
   String get content => controller.text;
 
+  /// A brand-new, untouched scratch document (no file, no text). Such a tab is
+  /// silently replaced when a file is opened instead of left lying around.
+  bool get isPristine => filePath == null && controller.text.isEmpty;
+
   /// Suggested file name when saving an as-yet-unsaved document.
   String get suggestedFileName =>
       title.toLowerCase().endsWith('.md') ? title : '$title.md';

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../app_window.dart';
 import '../models/document.dart';
-import '../services/document_io.dart';
+import '../services/document_io.dart' as io;
 import '../state/editor_state.dart';
 
 /// VS Code–style horizontal strip of document tabs.
@@ -71,10 +70,7 @@ class _DocumentTab extends StatefulWidget {
 class _DocumentTabState extends State<_DocumentTab> {
   bool _hovered = false;
 
-  void _close() {
-    final stillOpen = context.read<EditorState>().closeDocument(widget.document.id);
-    if (!stillOpen) closeApp();
-  }
+  void _close() => io.closeDocument(context, widget.document);
 
   Future<void> _showContextMenu(Offset globalPosition) async {
     final overlay =
@@ -103,9 +99,9 @@ class _DocumentTabState extends State<_DocumentTab> {
     if (action == null || !mounted) return;
     switch (action) {
       case _TabAction.save:
-        await saveDocument(context, widget.document);
+        await io.saveDocument(context, widget.document);
       case _TabAction.rename:
-        await renameDocument(context, widget.document);
+        await io.renameDocument(context, widget.document);
       case _TabAction.close:
         _close();
     }

@@ -7,6 +7,7 @@ class MainFlutterWindow: NSWindow {
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
+    self.delegate = self
 
     // Channel for delivering files opened via Finder / "Open With".
     let channel = FlutterMethodChannel(
@@ -28,5 +29,14 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()
+  }
+}
+
+extension MainFlutterWindow: NSWindowDelegate {
+  // Route the window's close button through app termination so a cancelled
+  // quit (unsaved changes) leaves the window open instead of closing it early.
+  func windowShouldClose(_ sender: NSWindow) -> Bool {
+    NSApp.terminate(nil)
+    return false
   }
 }

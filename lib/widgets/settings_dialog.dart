@@ -22,7 +22,7 @@ class SettingsDialog extends StatelessWidget {
     return AlertDialog(
       title: const Text('Settings'),
       content: SizedBox(
-        width: 380,
+        width: 420,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,6 +53,55 @@ class SettingsDialog extends StatelessWidget {
               selected: {settings.themeMode},
               onSelectionChanged: (selection) =>
                   context.read<SettingsState>().setThemeMode(selection.first),
+            ),
+            const SizedBox(height: 24),
+            _SectionHeader('Editor'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const SizedBox(width: 64, child: Text('Font')),
+                Expanded(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: settings.fontFamily,
+                    items: [
+                      for (final family in kFontFamilies)
+                        DropdownMenuItem(
+                          value: family,
+                          child: Text(family, style: TextStyle(fontFamily: family)),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        context.read<SettingsState>().setFontFamily(value);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const SizedBox(width: 64, child: Text('Size')),
+                Expanded(
+                  child: Slider(
+                    min: kMinFontSize,
+                    max: kMaxFontSize,
+                    divisions: (kMaxFontSize - kMinFontSize).round(),
+                    value: settings.fontSize,
+                    label: '${settings.fontSize.round()}',
+                    onChanged: (value) =>
+                        context.read<SettingsState>().setFontSize(value),
+                  ),
+                ),
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '${settings.fontSize.round()}',
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

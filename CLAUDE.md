@@ -25,9 +25,16 @@ active index; widgets read it with `context.watch`/`context.read`.
   last-saved). It must be `dispose()`d when its tab closes — `EditorState.closeDocument` does this.
 - **Save / rename** live on `EditorState` (`save`, `rename`) as UI-free methods that take injected
   `promptPath` / `writeFile` / `moveFile` callbacks, so they unit-test without dialogs or `dart:io`. The
-  UI wiring (native save panel + `File` writes) is in
-  [`lib/services/document_io.dart`](lib/services/document_io.dart). The Save button and italic tab title
-  listen to `DocumentModel.dirty`; ⌘S is bound via `CallbackShortcuts` in the editor screen.
+  UI wiring (native save panel + `File` writes, plus the close-confirmation dialog) is in
+  [`lib/services/document_io.dart`](lib/services/document_io.dart) — prefer routing close/save/rename
+  through its top-level helpers. The Save button and italic tab title listen to `DocumentModel.dirty`; ⌘S
+  is bound via `CallbackShortcuts` in the editor screen. Closing a dirty tab prompts Save/Don’t Save/Cancel.
+- **`openFile`** replaces the lone pristine startup "Noname" tab (`DocumentModel.isPristine`) instead of
+  leaving an empty tab around; a "Noname" is only created at startup.
+- **Settings** ([`SettingsState`](lib/state/settings_state.dart)) holds theme mode + editor font
+  family/size, persisted via `shared_preferences` (`load()` on startup in `main`, written on each setter).
+  It is constructed and loaded before `runApp` and passed into `MdEditorApp`; tests pass nothing and rely
+  on `SharedPreferences.setMockInitialValues`. The raw editor reads font family/size from it.
 - **Formatting** lives in [`lib/formatting/markdown_format.dart`](lib/formatting/markdown_format.dart) as
   **pure functions** on `TextEditingValue` (`applyFormat`, `activeFormats`) — no widget dependencies, so it
   is unit-tested directly. The toolbar wraps its buttons in `ExcludeFocus` so tapping them does not steal
@@ -50,6 +57,13 @@ a file, `AppDelegate.application(_:open:)` forwards the paths over the `mdeditor
 [`lib/services/open_file_channel.dart`](lib/services/open_file_channel.dart), wired up in `EditorScreen`'s
 `initState` only on macOS. This path can't be exercised by `flutter test` — verify by launching the built
 `.app` from Finder.
+
+**macOS quit confirmation:** `AppDelegate.applicationShouldTerminate` (red button / ⌘Q) calls Flutter's
+`confirmQuit` over the same channel; the Dart handler prompts when any document is dirty and replies
+whether to quit. `MainFlutterWindow.windowShouldClose` routes the close button through `NSApp.terminate`
+so a cancelled quit leaves the window open. Dialogs are shown via the global `navigatorKey`
+([`lib/app_navigator.dart`](lib/app_navigator.dart)). Also native-only — verify by quitting with unsaved
+changes.
 
 ## Testing notes
 

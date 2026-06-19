@@ -50,6 +50,10 @@ class EditorState extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    // Replace the lone startup scratch tab rather than leaving it empty.
+    if (_documents.length == 1 && _documents.first.isPristine) {
+      _documents.removeAt(0).dispose();
+    }
     _documents.add(DocumentModel(
       id: 'doc-${_idSeq++}',
       title: name,
